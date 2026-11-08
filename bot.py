@@ -14,6 +14,11 @@ from bs4 import BeautifulSoup
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 
+# Shared force-sub guard
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
+from forcesub_ptb import force_sub, force_sub_check
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -191,6 +196,7 @@ CHANNEL_KB = ReplyKeyboardMarkup([
 BACK = lambda uid: InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Menu", callback_data="menu")]])
 
 # ── Commands ──
+@force_sub
 async def start(upd, ctx):
     u = upd.effective_user
     await upd.message.reply_text(
@@ -204,6 +210,7 @@ async def start(upd, ctx):
         f"Kalau ketemu keyword → DM kamu!",
         parse_mode="Markdown", reply_markup=MAIN_KB)
 
+@force_sub
 async def cmd_add(upd, ctx):
     u = upd.effective_user.id
     args = ctx.args
@@ -220,6 +227,7 @@ async def cmd_add(upd, ctx):
     add_keyword(u, kw, ch)
     await upd.message.reply_text(f"✅ Keyword *{kw}* ditambahkan{' di @'+ch if ch else ''}!", parse_mode="Markdown", reply_markup=MAIN_KB)
 
+@force_sub
 async def cmd_list(upd, ctx):
     u = upd.effective_user.id
     kws = list_keywords(u)
@@ -233,6 +241,7 @@ async def cmd_list(upd, ctx):
     txt += f"\n\nTotal: {len(kws)} keyword"
     await upd.message.reply_text(txt, parse_mode="Markdown", reply_markup=MAIN_KB)
 
+@force_sub
 async def cmd_del(upd, ctx):
     u = upd.effective_user.id
     if not ctx.args:
@@ -249,6 +258,7 @@ async def cmd_del(upd, ctx):
     except:
         await upd.message.reply_text("❌ `/del 3`", reply_markup=MAIN_KB)
 
+@force_sub
 async def cmd_channels(upd, ctx):
     chs = get_channels()
     txt = "📡 *Channel yang dipantau*\n" + "\n".join(f"• @{c}" for c in chs)
@@ -263,6 +273,7 @@ async def cmd_del_channel(upd, ctx):
     ctx.user_data["mode"] = "del_ch"
 
 # ── Text Router ──
+@force_sub
 async def on_text(upd, ctx):
     if not upd.message or not upd.message.text: return
     u = upd.effective_user.id
@@ -388,6 +399,7 @@ async def monitor_cron(ctx: ContextTypes.DEFAULT_TYPE):
         conn().commit()
 
 # ── Callbacks ──
+@force_sub
 async def callback(upd, ctx):
     q = upd.callback_query
     await q.answer()
@@ -430,6 +442,7 @@ def main():
     app.add_handler(CommandHandler("admin", cmd_admin))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     app.add_handler(CallbackQueryHandler(callback))
+    app.add_handler(CallbackQueryHandler(force_sub_check, pattern=r"^forcesub_check$"))
     app.add_error_handler(error)
 
     # Cron

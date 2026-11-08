@@ -34,3 +34,7 @@ data/*.sqlite3
 # System
 .DS_Store
 Thumbs.db
+node_modules/
+*.db-shm
+*.db-wal
+*.session
